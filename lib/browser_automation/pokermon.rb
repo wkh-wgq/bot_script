@@ -2,6 +2,8 @@ require_relative './pokermon/base_runner'
 require_relative './pokermon/login_base_runner'
 require_relative './pokermon/draw_lot_runner'
 require_relative './pokermon/modify_profile_runner'
+require_relative './pokermon/modify_password_runner'
+require_relative './pokermon/modify_address_runner'
 require_relative './pokermon/order_runner'
 require_relative './pokermon/register_runner'
 require_relative './pokermon/lottery_won_pay_runner'
@@ -86,6 +88,44 @@ module BrowserAutomation
         succ_result: succ_result,
         fail_result: fail_result,
         error_info_result: error_info_result
+      }
+    end
+
+    def self.modify_address(emails)
+      succ_result = []
+      fail_result = []
+      emails.each do |email|
+        result = BrowserAutomation::Pokermon::ModifyAddressRunner.new(
+          email, password: "1234Asdf."
+        ).run
+        if result[:success]
+          succ_result << { email: result[:email], mobile: result[:mobile] }
+        else
+          fail_result << result[:email]
+        end
+      end
+      {
+        succ_result: succ_result,
+        fail_result: fail_result
+      }
+    end
+
+    def self.modify_password(emails)
+      succ_result = []
+      fail_result = []
+      emails.each do |email|
+        result = BrowserAutomation::Pokermon::ModifyPasswordRunner.new(
+          email, password: "1234Asdf."
+        ).run
+        if result[:success]
+          succ_result << { email: result[:email] }
+        else
+          fail_result << result[:email]
+        end
+      end
+      {
+        succ_result: succ_result,
+        fail_result: fail_result
       }
     end
   end # end module Pokermon
