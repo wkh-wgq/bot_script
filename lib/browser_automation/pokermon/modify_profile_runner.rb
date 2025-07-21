@@ -7,7 +7,7 @@ module BrowserAutomation
         super(email, password)
       end
 
-      def modify_profile
+      def run
         logger.info "用户(#{email})开始修改密码和地址信息"
         go_home_page
         random_browse
