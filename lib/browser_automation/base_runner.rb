@@ -2,6 +2,7 @@ require "playwright"
 module BrowserAutomation
   class BaseRunner
     MU, SIGMA = 0.5, 0.15
+    LOCATOR_TIMEOUT = 10_000
 
     PLAYWRIGHT_HOST = ENV.fetch("PLAYWRIGHT_HOST", "localhost")
     PLAYWRIGHT_PORT = ENV.fetch("PLAYWRIGHT_PORT", "8888")
@@ -66,7 +67,7 @@ module BrowserAutomation
 
     def human_like_click(selector, steps: 30, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
       # 找到目标元素并获取它的位置信息
-      element = page.wait_for_selector(selector)
+      element = page.wait_for_selector(selector, timeout: LOCATOR_TIMEOUT)
       human_like_click_of_element(
         element,
         steps: steps,
@@ -142,7 +143,7 @@ module BrowserAutomation
 
     # 判断元素是否在视口内
     def element_in_viewport?(element)
-      bounding_box = element.bounding_box
+      bounding_box = element.bounding_box(timeout: LOCATOR_TIMEOUT)
       raise "无法获取元素位置" unless bounding_box
       viewport_size = page.viewport_size
       # 检查元素是否在视口内(去掉上下各200px)
@@ -150,7 +151,7 @@ module BrowserAutomation
     end
 
     def human_like_click_of_element(element, steps: 30, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
-      box = element.bounding_box
+      box = element.bounding_box(timeout: LOCATOR_TIMEOUT)
       raise "无法获取元素位置" unless box
 
       # 目标点：元素内部某个随机点
