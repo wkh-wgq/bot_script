@@ -143,7 +143,7 @@ module BrowserAutomation
 
     # 判断元素是否在视口内
     def element_in_viewport?(element)
-      bounding_box = element.bounding_box(timeout: LOCATOR_TIMEOUT)
+      bounding_box = element.bounding_box
       raise "无法获取元素位置" unless bounding_box
       viewport_size = page.viewport_size
       # 检查元素是否在视口内(去掉上下各200px)
@@ -151,7 +151,7 @@ module BrowserAutomation
     end
 
     def human_like_click_of_element(element, steps: 30, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
-      box = element.bounding_box(timeout: LOCATOR_TIMEOUT)
+      box = element.bounding_box
       raise "无法获取元素位置" unless box
 
       # 目标点：元素内部某个随机点
