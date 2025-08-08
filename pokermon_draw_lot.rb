@@ -5,14 +5,13 @@ json_path = ARGV[0]
 json_text = File.read(json_path)
 source_data = JSON.parse(json_text)
 
-data = source_data.map do |item|
+data = source_data.map do |email|
   {
-    email: item['email'],
-    password: '1234qwer.',
-    index: item['index'].to_i,
+    email: email,
+    password: '1234qwer.'
   }
 end
 
-result = data.map do |params|
-  BrowserAutomation::Pokermon.draw_lot(params[:email], password: params[:password], index: params[:index])
-end
+result = BrowserAutomation::Pokermon.draw_lot(data)
+puts "成功：#{result[:succ_result]}"
+puts "失败：#{result[:fail_result]}"

@@ -33,10 +33,19 @@ module BrowserAutomation
     end
 
     # 抽奖
-    def self.draw_lot(email, password:, index:)
-      BrowserAutomation::Pokermon::DrawLotRunner.new(
-        email: email, password: password, index: index
-      ).run
+    def self.draw_lot(data)
+      succ_result = []
+      fail_result = []
+      data.each do |item|
+        result = BrowserAutomation::Pokermon::DrawLotRunner.new(
+          item[:email], password: item[:password]
+        ).run
+        result ? succ_result << item[:email] : fail_result << item[:email]
+      end
+      {
+        succ_result: succ_result,
+        fail_result: fail_result
+      }
     end
 
     # 下单
