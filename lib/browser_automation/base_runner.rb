@@ -65,12 +65,13 @@ module BrowserAutomation
       @playwright_exec.stop
     end
 
-    def human_like_click(selector, steps: 30, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
+    def human_like_click(selector, min_segments: 2, max_segments: 4, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
       # 找到目标元素并获取它的位置信息
       element = page.wait_for_selector(selector, timeout: LOCATOR_TIMEOUT)
       human_like_click_of_element(
         element,
-        steps: steps,
+        min_segments: min_segments,
+        max_segments: max_segments,
         move_delay: move_delay,
         click_delay: click_delay,
         wait_for_navigation: wait_for_navigation,
@@ -150,49 +151,100 @@ module BrowserAutomation
       bounding_box["y"] + bounding_box["height"] > 200 && bounding_box["y"] < (viewport_size[:height] - 200)
     end
 
-    def human_like_click_of_element(element, steps: 30, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
+    def human_like_click_of_element(element, min_segments: 2, max_segments: 4, move_delay: (0.01..0.03), click_delay: (0.1..0.3), wait_for_navigation: false, navigation_timeout: 30_000)
+      # 滚动干扰（确保元素可见 + 随机滚动）
+      element_handle = element.is_a?(Playwright::ElementHandle) ? element : element.element_handle
+      page.evaluate(<<~JS, arg: element_handle)
+        (el) => {
+          const rect = el.getBoundingClientRect();
+          const isAbove = rect.top < 0;
+          const isBelow = rect.bottom > window.innerHeight;
+
+          // 如果不在视口中，滚动到可见位置
+          if (isAbove || isBelow) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+
+          // 有 20% 概率随机滚动干扰
+          if (Math.random() < 0.2) {
+            const delta = (Math.random() - 0.5) * 200;
+            window.scrollBy({ top: delta, behavior: "smooth" });
+          }
+        }
+      JS
+      sleep(rand(0.3..0.8)) # 滚动后停顿
+
       box = element.bounding_box
       raise "无法获取元素位置" unless box
 
-      # 目标点：元素内部某个随机点
-      dx = [ [ gaussian_random, 0.2 ].max, 0.8 ].min
-      dy = [ [ gaussian_random, 0.2 ].max, 0.8 ].min
+      # 目标点（偏向中心）
+      bias_center = 0.55 + (rand - 0.5) * 0.1
+      dx = rand < 0.7 ? bias_center : rand(0.2..0.8)
+      dy = rand < 0.7 ? bias_center : rand(0.2..0.8)
       target_x = box["x"] + dx * box["width"]
       target_y = box["y"] + dy * box["height"]
 
-      # 起始点：使用当前鼠标位置或屏幕左上角附近
+      # 起始点
       default_x = rand(30..100)
       default_y = rand(30..100)
       start = page.evaluate("() => ({ x: window._lastX || #{default_x}, y: window._lastY || #{default_y} })")
       start_x = start["x"]
       start_y = start["y"]
 
-      # 控制点：模拟人类手部弯曲（增加随机Z轴旋转）
-      rotation = (rand - 0.5) * 0.3  # ±17度的随机旋转
-      cx = (start_x + target_x) / 2 + rand(-30..30) * Math.cos(rotation)
-      cy = (start_y + target_y) / 2 + rand(-30..30) * Math.sin(rotation)
+      # 生成多段贝塞尔路径
+      segments = rand(min_segments..max_segments)
+      points = [ [ start_x, start_y ] ]
+      segments.times do
+        points << [ target_x + rand(-40..40), target_y + rand(-40..40) ]
+      end
+      points << [ target_x, target_y ]
 
-      # 移动鼠标：按贝塞尔轨迹插值并加入轻微抖动
-      steps.times do |i|
-        t = i.to_f / (steps - 1)
-        # 三次贝塞尔曲线（更复杂轨迹）
-        x_base = (1 - t)**3 * start_x + 3 * (1 - t)**2 * t * cx + 3 * (1 - t) * t**2 * target_x + t**3 * target_x
-        y_base = (1 - t)**3 * start_y + 3 * (1 - t)**2 * t * cy + 3 * (1 - t) * t**2 * target_y + t**3 * target_y
-        # 加入5-10Hz的高频抖动（更接近真实手部颤抖）
-        jitter_x = Math.sin(t * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
-        jitter_y = Math.cos(t * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
-        x = x_base + jitter_x + rand(-0.5..0.5)
-        y = y_base + jitter_y + rand(-0.5..0.5)
+      # 插值路径
+      steps_per_segment = 12
+      total_points = []
+      (0...(points.size - 1)).each do |i|
+        p0 = points[i]
+        p3 = points[i + 1]
+        cx = (p0[0] + p3[0]) / 2 + rand(-30..30)
+        cy = (p0[1] + p3[1]) / 2 + rand(-30..30)
 
-        page.mouse.move(x, y, steps: 1)
-        page.evaluate("window._lastX = #{x}; window._lastY = #{y};")
+        steps_per_segment.times do |step|
+          t = step.to_f / (steps_per_segment - 1)
+          t_sigmoid = 1 / (1 + Math.exp(-12 * (t - 0.5))) # 加减速
 
-        sleep(rand(move_delay))
-        sleep(rand(0.03..0.15)) if rand < 0.15  # 随机小停顿
-        human_delay
+          x_base = (1 - t_sigmoid)**2 * p0[0] + 2 * (1 - t_sigmoid) * t_sigmoid * cx + t_sigmoid**2 * p3[0]
+          y_base = (1 - t_sigmoid)**2 * p0[1] + 2 * (1 - t_sigmoid) * t_sigmoid * cy + t_sigmoid**2 * p3[1]
+
+          # 高频抖动
+          jitter_x = Math.sin(t_sigmoid * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
+          jitter_y = Math.cos(t_sigmoid * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
+
+          x = x_base + jitter_x + rand(-0.5..0.5)
+          y = y_base + jitter_y + rand(-0.5..0.5)
+
+          total_points << [ x, y ]
+        end
       end
 
-      # 停顿后点击（更像人）
+      # 执行鼠标移动
+      total_points.each_with_index do |(x, y), idx|
+        page.mouse.move(x, y, steps: 1)
+        page.evaluate("window._lastX = #{x}; window._lastY = #{y};")
+        sleep(rand(move_delay))
+        sleep(rand(0.03..0.15)) if rand < 0.15
+      end
+
+      # Hover 停顿
+      page.mouse.move(target_x, target_y)
+      sleep(rand(0.15..0.4)) # 模拟人在点击前的短暂犹豫
+      if rand < 0.3
+        # 30% 概率在目标附近微调一下
+        page.mouse.move(target_x + rand(-2..2), target_y + rand(-2..2))
+        sleep(rand(0.05..0.15))
+        page.mouse.move(target_x, target_y)
+      end
+
+      # 点击
       sleep(rand(click_delay))
       if wait_for_navigation
         page.expect_navigation(timeout: navigation_timeout) do
@@ -203,12 +255,11 @@ module BrowserAutomation
       end
     end
 
-    # 模拟人类点击（分离 mouse.down 和 mouse.up）
     def simulate_human_click(x, y)
       page.mouse.move(x, y)
       sleep(rand(0.05..0.15))
       page.mouse.down
-      sleep(rand(0.05..0.15))
+      sleep(rand(0.05..0.2))
       page.mouse.up
     end
 

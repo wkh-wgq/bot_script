@@ -49,9 +49,9 @@ module BrowserAutomation
       # 抽奖
       def draw_lot
         positions = [
-          { product_index: 0, radio_index: 0, move_px: (500..700) },
-          { product_index: 4, radio_index: 0, move_px: (2400..2600) },
-          { product_index: 5, radio_index: 0, move_px: (2600..2800) }
+          { product_index: 0, radio_index: 0 },
+          { product_index: 4, radio_index: 0 },
+          { product_index: 5, radio_index: 0 }
         ]
         human_delay(3.0, 5.0)
         human_like_click("text=抽選応募")
@@ -67,7 +67,6 @@ module BrowserAutomation
           logger.debug "抽奖商品#{product_index}，状态为(#{status})"
           next if status == "受付完了"
           return if status == "受付終了"
-          human_like_move(scorll_length: position[:move_px])
           human_delay
           human_like_move_to_element(li.locator("text=詳しく見る"))
           human_like_click_of_element(li.locator("text=詳しく見る"))
