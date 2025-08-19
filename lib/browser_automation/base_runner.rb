@@ -6,6 +6,8 @@ module BrowserAutomation
 
     PLAYWRIGHT_HOST = ENV.fetch("PLAYWRIGHT_HOST", "localhost")
     PLAYWRIGHT_PORT = ENV.fetch("PLAYWRIGHT_PORT", "8888")
+    TEMPLATE_USER_DATA_DIR = File.join(Dir.pwd, "template", "initialize_user_data")
+    USER_DATA_ROOT_DIR = File.join(Dir.pwd, "tmp", "user_data")
 
     USER_AGENTS = [
       # "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
@@ -34,6 +36,7 @@ module BrowserAutomation
       ua = "\"Chromium\";v=\"#{version}\", \"#{browser == 'msedge' ? 'Microsoft Edge' : 'Google Chrome'}\";v=\"#{version}\", \"Not.A/Brand\";v=\"99\""
       @playwright_exec = Playwright.connect_to_playwright_server("ws://#{PLAYWRIGHT_HOST}:#{PLAYWRIGHT_PORT}/ws?browser=chromium")
       user_data_dir = File.join(Dir.pwd, "tmp", "user_data", account_dir_name)
+      initialize_user_data(user_data_dir)
       @context = @playwright_exec.playwright.chromium.launch_persistent_context(
         user_data_dir,
         channel: browser,
@@ -294,6 +297,14 @@ module BrowserAutomation
 
     def human_delay(min = 0.5, max = 2.0)
       sleep(rand(min..max))
+    end
+
+    # 初始化用户数据目录，如果是新用户，则将模版copy一份到用户目录下
+    def initialize_user_data(user_data_dir)
+      return if File.exist?(user_data_dir)
+      FileUtils.mkdir_p(USER_DATA_ROOT_DIR) unless File.exist?(USER_DATA_ROOT_DIR)
+      FileUtils.cp_r(TEMPLATE_USER_DATA_DIR, user_data_dir)
+      logger.info("copy模版用户目录: #{user_data_dir}")
     end
 
     def init_logger

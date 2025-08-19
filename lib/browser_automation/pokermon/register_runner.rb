@@ -2,8 +2,8 @@ module BrowserAutomation
   module Pokermon
     class RegisterRunner < BaseRunner
       attr_reader :email
-      def initialize(email:)
-        initialize_page("visitor")
+      def initialize(email)
+        initialize_page(email.split(".").first)
         @email = email
       end
 
