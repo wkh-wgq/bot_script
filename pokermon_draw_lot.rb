@@ -1,14 +1,14 @@
 require_relative './lib/browser_automation/pokermon'
 require 'json'
 
-json_path = ARGV[0]
-json_text = File.read(json_path)
-source_data = JSON.parse(json_text)
+file_path = ARGV[0]
+string_text = File.read(file_path).strip
+emails = string_text.split(',')
 
-data = source_data.map do |email|
+data = emails.map do |email|
   {
     email: email,
-    password: '1234qwer.'
+    password: '1234Asdf.'
   }
 end
 
