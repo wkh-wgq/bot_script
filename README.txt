@@ -18,6 +18,9 @@ bundle install
 下单
 ruby pokermon_order.rb ~/Downloads/order.json > ~/Downloads/order.log
 
+登陆
+ruby pokermon_login.rb ~/Downloads/emails.txt > ~/Downloads/login.log
+
 抽奖
 ruby pokermon_draw_lot.rb ~/Downloads/draw_lot.json > ~/Downloads/draw_lot.log
 

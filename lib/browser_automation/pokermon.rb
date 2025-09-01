@@ -32,6 +32,22 @@ module BrowserAutomation
       )
     end
 
+    def self.batch_login(data)
+      succ_result = []
+      fail_result = []
+      data.each_with_index do |item, index|
+        result = BrowserAutomation::Pokermon::LoginBaseRunner.new(
+          item[:email], item[:password]
+        ).run
+        result ? succ_result << item[:email] : fail_result << item[:email]
+        sleep(rand(180..480)) if index < data.size - 1
+      end
+      {
+        succ_result: succ_result,
+        fail_result: fail_result
+      }
+    end
+
     # 抽奖
     def self.draw_lot(data)
       succ_result = []

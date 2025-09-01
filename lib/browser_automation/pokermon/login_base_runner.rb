@@ -14,6 +14,20 @@ module BrowserAutomation
         @login_retry_count = 0
       end
 
+      def run
+        go_home_page
+        %w[random_browse login].each do |method|
+          send(:execute_with_log, method)
+        end
+        logger.info "用户(#{email})登陆完成"
+        true
+      rescue Exception => _e
+        logger.error "用户(#{email})登陆流程异常结束"
+        false
+      ensure
+        close_page
+      end
+
       def login
         human_like_move_to_top
         human_like_click("text=ログイン ／ 会員登録", wait_for_navigation: true)
