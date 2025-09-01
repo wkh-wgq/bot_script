@@ -36,11 +36,12 @@ module BrowserAutomation
     def self.draw_lot(data)
       succ_result = []
       fail_result = []
-      data.each do |item|
+      data.each_with_index do |item, index|
         result = BrowserAutomation::Pokermon::DrawLotRunner.new(
           item[:email], password: item[:password]
         ).run
         result ? succ_result << item[:email] : fail_result << item[:email]
+        sleep(rand(180..480)) if index < data.size - 1
       end
       {
         succ_result: succ_result,
