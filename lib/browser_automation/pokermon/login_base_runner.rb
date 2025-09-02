@@ -30,6 +30,8 @@ module BrowserAutomation
 
       def login
         human_like_move_to_top
+        # 鼠标随机移动
+        human_mouse_idle_move
         human_like_click("text=ログイン ／ 会員登録", wait_for_navigation: true)
         human_like_move_to_element(page.locator("#form1Button"))
         human_like_click("#login-form-email")

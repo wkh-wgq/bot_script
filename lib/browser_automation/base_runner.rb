@@ -299,6 +299,37 @@ module BrowserAutomation
       sleep(rand(min..max))
     end
 
+    def human_mouse_idle_move(duration: 5, min_steps: 5, max_steps: 20, delay_range: 0.01..0.05)
+      viewport = page.viewport_size
+      viewport_width = viewport[:width]
+      viewport_height = viewport[:height]
+      start_time = Time.now
+      # 从当前鼠标位置或随机位置开始
+      x = rand(0..viewport_width)
+      y = rand(0..viewport_height)
+
+      while Time.now - start_time < duration
+        steps = rand(min_steps..max_steps)
+        # 随机下一个目标点
+        target_x = rand(0..viewport_width)
+        target_y = rand(0..viewport_height)
+
+        steps.times do |i|
+          t = (i + 1).to_f / steps
+          # 使用线性插值 + 随机微抖动
+          x_next = x + (target_x - x) * t + rand(-1.0..1.0)
+          y_next = y + (target_y - y) * t + rand(-1.0..1.0)
+
+          page.mouse.move(x_next, y_next)
+          sleep rand(delay_range)
+        end
+
+        # 更新当前位置
+        x = target_x
+        y = target_y
+      end
+    end
+
     # 初始化用户数据目录，如果是新用户，则将模版copy一份到用户目录下
     def initialize_user_data(user_data_dir)
       return if File.exist?(user_data_dir)

@@ -38,14 +38,27 @@ module BrowserAutomation
         # return if rand < 0.3
         block = -> do
           # 随机向下滚动
-          human_like_scroll(scroll_times: (3..5), scorll_length: (300..600))
+          human_like_scroll(scroll_times: (3..7), scorll_length: (300..600))
           # 向上滚动到页面顶部
           human_like_move_to_top
         end
-        # block.call if rand < 0.5
+        human_mouse_idle_move
         block.call
-        human_like_click("text=新商品", wait_for_navigation: true)
-        block.call
+        if rand < 0.8
+          human_like_click("text=新商品", wait_for_navigation: true)
+          human_mouse_idle_move if rand < 0.5
+          block.call
+        end
+        if rand < 0.7
+          human_like_click("text=ポケモンから探す", wait_for_navigation: true)
+          human_mouse_idle_move if rand < 0.5
+          block.call
+        end
+        if rand < 0.6
+          human_like_click("text=おすすめ特集", wait_for_navigation: true)
+          human_mouse_idle_move if rand < 0.5
+          block.call
+        end
       end
 
       def queue_up
