@@ -53,11 +53,12 @@ module BrowserAutomation
           # { product_index: 4, radio_index: 0 },
           # { product_index: 5, radio_index: 0 }
         ]
-        human_delay(3.0, 5.0)
+        human_mouse_idle_move
         human_like_click("text=抽選応募")
-        human_delay(1.0, 3.0)
+        human_delay
         human_like_click("#step3Btn")
-        human_delay(5.0, 8.0)
+        human_mouse_idle_move
+        human_delay
         lis = page.locator("ul.comOrderList > li")
         raise "抽奖失败！" if lis.count == 0
         positions.each do |position|
@@ -67,6 +68,7 @@ module BrowserAutomation
           logger.debug "抽奖商品#{product_index}，状态为(#{status})"
           next if status == "受付完了"
           return if status == "受付終了"
+          human_mouse_idle_move
           human_delay
           human_like_move_to_element(li.locator("text=詳しく見る"))
           human_like_click_of_element(li.locator("text=詳しく見る"))
@@ -78,7 +80,8 @@ module BrowserAutomation
           human_like_click_of_element(li.get_by_label("応募要項に同意する"))
           human_like_click_of_element(li.locator("a.popup-modal.on"))
           human_like_click("#applyBtn")
-          human_delay(6.0, 8.0)
+          human_delay(1.0, 3.0)
+          human_mouse_idle_move
           if li.locator(".ttl").text_content == "受付完了"
             logger.info "用户(#{@email})抽奖(#{product_index})成功"
           else

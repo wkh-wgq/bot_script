@@ -48,7 +48,9 @@ module BrowserAutomation
         sleep(rand(7..10))
         if page.url.include? "https://www.pokemoncenter-online.com/login-mfa"
           logger.info "发送验证码，等待邮件..."
-          sleep(rand(15..20))
+          human_mouse_idle_move
+          sleep(rand(5..10))
+          human_mouse_idle_move
           # 调接口查询邮件的验证码
           captcha = get_login_captcha
           page.locator("#authCode").type(captcha, delay: rand(50..200))
