@@ -46,9 +46,7 @@ module BrowserAutomation
 
         human_delay(3, 5)
 
-        if page.locator(".stored-card-number").inner_text[0..5] != "539502" || page.locator(".stored-card-expire").inner_text != "07/27"
-          raise CustomError.new("信用卡信息不正确", :wrong_card)
-        end
+        check_credit_card!
 
         human_like_move_to_element(page.locator("text=ご注文内容を確認する"))
         human_like_click("text=ご注文内容を確認する")
@@ -58,6 +56,15 @@ module BrowserAutomation
         human_like_move_to_element(page.locator("text=注文を確定する").last)
         human_like_click_of_element(page.locator("text=注文を確定する").last)
         human_delay
+      end
+
+      def check_credit_card!
+        credit_card_prefixs = File.read("credit_card_prefixs.txt").strip.split(',')
+        logger.info "可用的引用卡前缀列表：#{credit_card_prefixs}"
+        return if credit_card_prefixs.empty?
+        if credit_card_prefixs.include?(page.locator(".stored-card-number").inner_text[0..5])
+          raise CustomError.new("信用卡信息不正确", :wrong_card)
+        end
       end
 
       # 回填订单号

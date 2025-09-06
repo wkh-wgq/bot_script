@@ -56,7 +56,7 @@ module BrowserAutomation
           page.locator("#authCode").type(captcha, delay: rand(50..200))
           human_like_click("#rememberMe")
           human_like_click("#authBtn")
-          sleep(rand(5..7))
+          sleep(rand(7..10))
         end
 
         if page.url.include? MY_URL
