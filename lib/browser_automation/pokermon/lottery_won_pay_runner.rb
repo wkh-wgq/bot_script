@@ -62,7 +62,7 @@ module BrowserAutomation
         credit_card_prefixs = File.read("credit_card_prefixs.txt").strip.split(',')
         logger.info "可用的引用卡前缀列表：#{credit_card_prefixs}"
         return if credit_card_prefixs.empty?
-        if credit_card_prefixs.include?(page.locator(".stored-card-number").inner_text[0..5])
+        unless credit_card_prefixs.include?(page.locator(".stored-card-number").inner_text[0..5])
           raise CustomError.new("信用卡信息不正确", :wrong_card)
         end
       end
