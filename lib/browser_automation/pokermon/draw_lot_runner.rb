@@ -42,25 +42,25 @@ module BrowserAutomation
         logger.info "排队完成"
         sleep rand(4.0..8.0)
         # 点击进入网站按钮
-        page.locator("#buttonConfirmRedirect").click
-        logger.info "用户(#{account_no})进入网站"
+        # page.locator("#buttonConfirmRedirect").click
+        # logger.info "用户(#{account_no})进入网站"
       end
 
       # 抽奖
       def draw_lot
         positions = [
-          { product_index: 1, radio_index: 0 }
-          # { product_index: 4, radio_index: 0 },
-          # { product_index: 5, radio_index: 0 }
+          { product_index: 0, radio_index: 0 },
+          { product_index: 1, radio_index: 0 },
+          { product_index: 2, radio_index: 0 }
         ]
         human_mouse_idle_move
         human_like_click("text=抽選応募")
         human_delay
         human_like_click("#step3Btn")
         human_mouse_idle_move
-        human_delay
+        human_delay(5, 8)
         lis = page.locator("ul.comOrderList > li")
-        raise "抽奖失败！" if lis.count == 0
+        raise "抽奖页面异常，抽奖失败！" if lis.count == 0
         positions.each do |position|
           product_index = position[:product_index]
           li = lis.nth(product_index)
@@ -82,7 +82,12 @@ module BrowserAutomation
           human_like_click("#applyBtn")
           human_delay(1.0, 3.0)
           human_mouse_idle_move
-          if li.locator(".ttl").text_content == "受付完了"
+          begin
+            text_content = li.locator(".ttl").text_content
+          rescue Exception => _e
+            raise "用户(#{@email})抽奖(#{product_index})失败!"
+          end
+          if text_content == "受付完了"
             logger.info "用户(#{@email})抽奖(#{product_index})成功"
           else
             raise "用户(#{@email})抽奖(#{product_index})失败!"

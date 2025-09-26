@@ -22,7 +22,7 @@ ruby pokermon_order.rb ~/Downloads/order.json > ~/Downloads/order.log
 ruby pokermon_login.rb ~/Downloads/emails.txt > ~/Downloads/login.log
 
 抽奖
-ruby pokermon_draw_lot.rb ~/Downloads/draw_lot.json > ~/Downloads/draw_lot.log
+ruby pokermon_draw_lot.rb ~/Downloads/emails.txt > ~/Downloads/draw_lot.log
 
 中奖付款
 ruby pokermon_lottery_won_pay.rb ~/Downloads/emails.txt > ~/Downloads/result.log

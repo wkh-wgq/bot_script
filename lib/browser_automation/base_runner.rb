@@ -148,7 +148,7 @@ module BrowserAutomation
     # 判断元素是否在视口内
     def element_in_viewport?(element)
       bounding_box = element.bounding_box
-      raise "无法获取元素位置" unless bounding_box
+      raise "无法获取元素(#{get_element_selector(element)})位置" unless bounding_box
       viewport_size = page.viewport_size
       # 检查元素是否在视口内(去掉上下各200px)
       bounding_box["y"] + bounding_box["height"] > 200 && bounding_box["y"] < (viewport_size[:height] - 200)
@@ -178,7 +178,7 @@ module BrowserAutomation
       sleep(rand(0.3..0.8)) # 滚动后停顿
 
       box = element.bounding_box
-      raise "无法获取元素位置" unless box
+      raise "无法获取元素(#{get_element_selector(element)})位置" unless box
 
       # 目标点（偏向中心）
       bias_center = 0.55 + (rand - 0.5) * 0.1
@@ -327,6 +327,14 @@ module BrowserAutomation
         # 更新当前位置
         x = target_x
         y = target_y
+      end
+    end
+
+    def get_element_selector(element)
+      begin
+        element.instance_variable_get('@impl').instance_variable_get('@selector')
+      rescue Exception => _e
+        nil
       end
     end
 
