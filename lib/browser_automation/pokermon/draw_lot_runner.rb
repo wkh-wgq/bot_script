@@ -67,7 +67,6 @@ module BrowserAutomation
           status = li.locator(".ttl").text_content
           logger.debug "抽奖商品#{product_index}，状态为(#{status})"
           next if status == "受付完了"
-          return if status == "受付終了"
           human_mouse_idle_move
           human_delay
           human_like_move_to_element(li.locator("text=詳しく見る"))

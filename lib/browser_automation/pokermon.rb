@@ -35,12 +35,11 @@ module BrowserAutomation
     def self.batch_login(data)
       succ_result = []
       fail_result = []
-      data.each_with_index do |item, index|
+      each_with_sleep(data) do |item|
         result = BrowserAutomation::Pokermon::LoginBaseRunner.new(
           item[:email], item[:password]
         ).run
         result ? succ_result << item[:email] : fail_result << item[:email]
-        sleep(rand(180..480)) if index < data.size - 1
       end
       {
         succ_result: succ_result,
@@ -52,12 +51,11 @@ module BrowserAutomation
     def self.draw_lot(data)
       succ_result = []
       fail_result = []
-      data.each_with_index do |item, index|
+      each_with_sleep(data) do |item|
         result = BrowserAutomation::Pokermon::DrawLotRunner.new(
           item[:email], password: item[:password]
         ).run
         result ? succ_result << item[:email] : fail_result << item[:email]
-        sleep(rand(180..480)) if index < data.size - 1
       end
       {
         succ_result: succ_result,
@@ -71,7 +69,7 @@ module BrowserAutomation
       succ_result = []
       fail_result = []
       error_address_result = []
-      data.each do |item|
+      each_with_sleep(data) do |item|
         begin
           result = BrowserAutomation::Pokermon::OrderRunner.new(
             item[:email], password: item[:password], products: item[:products]
@@ -98,7 +96,7 @@ module BrowserAutomation
       succ_result = []
       fail_result = []
       error_info_result = []
-      emails.each do |email|
+      each_with_sleep(emails) do |email|
         result = BrowserAutomation::Pokermon::LotteryWonPayRunner.new(
           email, password: "1234Asdf."
         ).run
@@ -120,7 +118,7 @@ module BrowserAutomation
     def self.modify_address(emails)
       succ_result = []
       fail_result = []
-      emails.each do |email|
+      each_with_sleep(emails) do |email|
         result = BrowserAutomation::Pokermon::ModifyAddressRunner.new(
           email, password: "1234Asdf."
         ).run
@@ -139,7 +137,7 @@ module BrowserAutomation
     def self.modify_password(emails)
       succ_result = []
       fail_result = []
-      emails.each do |email|
+      each_with_sleep(emails) do |email|
         result = BrowserAutomation::Pokermon::ModifyPasswordRunner.new(
           email, password: "1234Asdf."
         ).run
@@ -153,6 +151,13 @@ module BrowserAutomation
         succ_result: succ_result,
         fail_result: fail_result
       }
+    end
+
+    def self.each_with_sleep(data, &block)
+      data.each_with_index do |item, index|
+        yield(item)
+        sleep(rand(180..480)) if index < data.size - 1
+      end
     end
   end # end module Pokermon
 end # end module BrowseAutomation
