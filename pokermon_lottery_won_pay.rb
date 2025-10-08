@@ -8,3 +8,4 @@ result = BrowserAutomation::Pokermon.lottery_won_pay(emails)
 puts "成功：#{result[:succ_result]}"
 puts "失败：#{result[:fail_result]}"
 puts "信息错误：#{result[:error_info_result]}"
+puts "未执行：#{result[:unexecuted_emails]}"

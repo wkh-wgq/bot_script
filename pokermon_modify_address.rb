@@ -7,3 +7,4 @@ emails = string_text.split(',')
 result = BrowserAutomation::Pokermon.modify_address(emails)
 puts "成功：#{result[:succ_result]}"
 puts "失败：#{result[:fail_result]}"
+puts "未执行：#{result[:unexecuted_emails]}"

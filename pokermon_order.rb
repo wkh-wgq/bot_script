@@ -23,3 +23,4 @@ result = BrowserAutomation::Pokermon.order(data)
 puts "成功：#{result[:succ_result]}"
 puts "失败：#{result[:fail_result]}"
 puts "地址错误：#{result[:error_address_result]}"
+puts "未执行：#{result[:unexecuted_emails]}"
