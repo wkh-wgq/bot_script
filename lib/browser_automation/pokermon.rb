@@ -131,7 +131,7 @@ module BrowserAutomation
       end
       {
         succ_result: succ_result,
-        fail_result: fail_result,
+        fail_result: fail_result.join(","),
         error_info_result: error_info_result,
         unexecuted_emails: unexecuted_emails.join(",")
       }
@@ -155,7 +155,7 @@ module BrowserAutomation
       end
       {
         succ_result: succ_result,
-        fail_result: fail_result,
+        fail_result: fail_result.join(","),
         unexecuted_emails: unexecuted_emails.join(",")
       }
     end
@@ -178,7 +178,7 @@ module BrowserAutomation
       end
       {
         succ_result: succ_result,
-        fail_result: fail_result,
+        fail_result: fail_result.join(","),
         unexecuted_emails: unexecuted_emails.join(",")
       }
     end
