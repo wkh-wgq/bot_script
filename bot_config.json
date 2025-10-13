@@ -4,5 +4,7 @@
     // 失败后的间隔时间(单位：分钟，范围值)
     "failure_delay_minutes": "15-20",
     // 最大的连续失败数量
-    "max_consecutive_failures": 5
+    "max_consecutive_failures": 5,
+    // 是否加载图片
+    "is_load_image": false
 }

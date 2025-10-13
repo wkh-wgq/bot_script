@@ -1,4 +1,5 @@
 require "playwright"
+require 'json'
 module BrowserAutomation
   class BaseRunner
     MU, SIGMA = 0.5, 0.15
@@ -8,17 +9,6 @@ module BrowserAutomation
     PLAYWRIGHT_PORT = ENV.fetch("PLAYWRIGHT_PORT", "8888")
     TEMPLATE_USER_DATA_DIR = File.join(Dir.pwd, "template", "initialize_user_data")
     USER_DATA_ROOT_DIR = File.join(Dir.pwd, "tmp", "user_data")
-
-    USER_AGENTS = [
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
-      # "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0",
-      # "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0",
-      # "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0",
-      # "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
-    ]
     VIEWPORTS = [
       { width: 1366, height: 768 },
       { width: 1440, height: 900 }
@@ -29,7 +19,10 @@ module BrowserAutomation
     def initialize_page(account_dir_name)
       init_logger
       @logger.info "开始加载驱动"
-      user_agent = USER_AGENTS.sample
+      user_agents = File.read("user_agents.txt").strip.split("\n")
+      raise "请先在user_agents.txt文件中配置user_agent" if user_agents.empty?
+      user_agent = user_agents.sample.strip
+      raise "请配置正确的user_agent" if user_agent.empty?
       browser = user_agent.include?("Edg") ? "msedge" : "chrome"
       platform = user_agent.include?("Windows") ? '"Windows"' : '"macOS"'
       version = user_agent.split("Chrome/")[1].split(".").first
@@ -58,6 +51,12 @@ module BrowserAutomation
         ignoreDefaultArgs: [ "--enable-automation" ],
         viewport: VIEWPORTS.sample
       )
+      config = self.class.load_config
+      unless config["is_load_image"]
+        @context.route("**/*.png", ->(route, request) { route.abort })
+        @context.route("**/*.jpg", ->(route, request) { route.abort })
+        @context.route("**/*.gif", ->(route, request) { route.abort })
+      end
       @logger.info "驱动加载完成-浏览器(#{browser})-user_agent(#{user_agent})"
       @page = @context.pages.first
     end
@@ -352,6 +351,26 @@ module BrowserAutomation
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, _, msg|
         "[#{datetime.strftime('%Y-%m-%d %H:%M:%S')}] #{severity} - #{msg}\n"
+      end
+    end
+
+    def self.load_config
+      return @config if @config
+      json_text = File.read(File.join(Dir.pwd, "bot_config.json"))
+      begin
+        @config = JSON.parse(json_text)
+        min_interval_minutes, max_interval_minutes = @config["interval_minutes"].split("-").map{|i| i.to_i * 60}
+        @config["min_interval_minutes"] = min_interval_minutes
+        @config["max_interval_minutes"] = max_interval_minutes || min_interval_minutes
+        
+        min_failure_delay_minutes, max_failure_delay_minutes = @config["failure_delay_minutes"].split("-").map{|i| i.to_i * 60}
+        @config["min_failure_delay_minutes"] = min_failure_delay_minutes
+        @config["max_failure_delay_minutes"] = max_failure_delay_minutes || min_failure_delay_minutes
+
+        @config["max_consecutive_failures"] = @config["max_consecutive_failures"].to_i
+        @config
+      rescue Exception => _e
+        raise "bot_config.json 格式错误"
       end
     end
   end # end class BaseRunner

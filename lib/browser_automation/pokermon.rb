@@ -8,7 +8,6 @@ require_relative './pokermon/order_runner'
 require_relative './pokermon/register_runner'
 require_relative './pokermon/lottery_won_pay_runner'
 require_relative '../custom_error'
-require 'json'
 
 module BrowserAutomation
   module Pokermon
@@ -184,7 +183,7 @@ module BrowserAutomation
     end
 
     def self.each_with_sleep(data, &block)
-      config = load_config
+      config = BrowserAutomation::BaseRunner.load_config
       consecutive_failures = 0
       data.each_with_index do |item, index|
         is_success = yield(item)
@@ -197,25 +196,6 @@ module BrowserAutomation
           return puts("[#{Time.now.strftime('%Y-%m-%d %H:%M:%S')}] INFO - 连续失败#{consecutive_failures}次，停止执行") if consecutive_failures >= config["max_consecutive_failures"]
           sleep(rand(config["min_failure_delay_minutes"]..config["max_failure_delay_minutes"])) if index < data.size - 1
         end
-      end
-    end
-
-    def self.load_config
-      json_text = File.read(File.join(Dir.pwd, "bot_config.json"))
-      begin
-        config = JSON.parse(json_text)
-        min_interval_minutes, max_interval_minutes = config["interval_minutes"].split("-").map{|i| i.to_i * 60}
-        config["min_interval_minutes"] = min_interval_minutes
-        config["max_interval_minutes"] = max_interval_minutes || min_interval_minutes
-        
-        min_failure_delay_minutes, max_failure_delay_minutes = config["failure_delay_minutes"].split("-").map{|i| i.to_i * 60}
-        config["min_failure_delay_minutes"] = min_failure_delay_minutes
-        config["max_failure_delay_minutes"] = max_failure_delay_minutes || min_failure_delay_minutes
-
-        config["max_consecutive_failures"] = config["max_consecutive_failures"].to_i
-        config
-      rescue Exception => _e
-        raise "bot_config.json 格式错误"
       end
     end
   end # end module Pokermon
