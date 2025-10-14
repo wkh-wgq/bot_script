@@ -121,7 +121,7 @@ module BrowserAutomation
           succ_result << { email: result[:email], order_no: result[:order_no] }
           true
         elsif !result[:error_code].nil?
-          error_info_result << result[:email]
+          error_info_result << { email: result[:email], error_code: result[:error_code] }
           true
         else
           fail_result << result[:email]

@@ -70,6 +70,9 @@ module BrowserAutomation
       # 回填订单号
       def fill_order_no
         human_delay(15, 20)
+        if page.url.include? "www.pokemoncenter-online.com/error"
+          raise CustomError.new("订单支付失败", :pay_failed)
+        end
         human_like_move_to_element(page.locator("text=トップページへ"))
         @order_no = page.locator(".numberTxt .txt").inner_text
         logger.info "用户(#{email})订单号：#{@order_no}"
