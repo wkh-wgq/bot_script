@@ -1,4 +1,4 @@
-require_relative './lib/browser_automation/pokermon'
+require_relative '../lib/browser_automation/pokermon'
 require 'json'
 
 json_path = ARGV[0]

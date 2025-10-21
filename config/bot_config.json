@@ -6,5 +6,7 @@
     // 最大的连续失败数量
     "max_consecutive_failures": 5,
     // 是否加载图片
-    "is_load_image": false
+    "is_load_image": false,
+    // 磁盘可用空间限制阈值
+    "disk_free_threshold": 0.2
 }

@@ -1,4 +1,4 @@
-require_relative './lib/browser_automation/pokermon'
+require_relative '../lib/browser_automation/pokermon'
 
 file_path = ARGV[0]
 string_text = File.read(file_path).strip
@@ -11,7 +11,7 @@ data = emails.map do |email|
   }
 end
 
-result = BrowserAutomation::Pokermon.draw_lot(data)
+result = BrowserAutomation::Pokermon.batch_login(data)
 puts "成功：#{result[:succ_result]}"
 puts "失败：#{result[:fail_result]}"
 puts "未执行：#{result[:unexecuted_emails]}"

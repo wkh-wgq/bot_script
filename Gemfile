@@ -10,3 +10,6 @@ gem "rest-client", "~> 2.1"
 
 # window系统需要
 gem "ffi", "~> 1.17"
+
+# 系统调用
+gem "sys-filesystem", "~> 1.5"

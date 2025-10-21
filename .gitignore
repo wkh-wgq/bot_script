@@ -1,3 +1,2 @@
 # Ignore tempfiles.
-/tmp/*
-credit_card_prefixs.txt
+config/credit_card_prefixs.txt

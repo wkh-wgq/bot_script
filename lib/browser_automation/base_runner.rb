@@ -1,4 +1,5 @@
 require "playwright"
+require "sys/filesystem"
 require 'json'
 module BrowserAutomation
   class BaseRunner
@@ -8,7 +9,6 @@ module BrowserAutomation
     PLAYWRIGHT_HOST = ENV.fetch("PLAYWRIGHT_HOST", "localhost")
     PLAYWRIGHT_PORT = ENV.fetch("PLAYWRIGHT_PORT", "8888")
     TEMPLATE_USER_DATA_DIR = File.join(Dir.pwd, "template", "initialize_user_data")
-    USER_DATA_ROOT_DIR = File.join(Dir.pwd, "tmp", "user_data")
     VIEWPORTS = [
       { width: 1366, height: 768 },
       { width: 1440, height: 900 }
@@ -19,7 +19,7 @@ module BrowserAutomation
     def initialize_page(account_dir_name)
       init_logger
       @logger.info "开始加载驱动"
-      user_agents = File.read("user_agents.txt").strip.split("\n")
+      user_agents = File.read(File.join(Dir.pwd, "config", "user_agents.txt")).strip.split("\n")
       raise "请先在user_agents.txt文件中配置user_agent" if user_agents.empty?
       user_agent = user_agents.sample.strip
       raise "请配置正确的user_agent" if user_agent.empty?
@@ -28,10 +28,8 @@ module BrowserAutomation
       version = user_agent.split("Chrome/")[1].split(".").first
       ua = "\"Chromium\";v=\"#{version}\", \"#{browser == 'msedge' ? 'Microsoft Edge' : 'Google Chrome'}\";v=\"#{version}\", \"Not.A/Brand\";v=\"99\""
       @playwright_exec = Playwright.connect_to_playwright_server("ws://#{PLAYWRIGHT_HOST}:#{PLAYWRIGHT_PORT}/ws?browser=chromium")
-      user_data_dir = File.join(Dir.pwd, "tmp", "user_data", account_dir_name)
-      initialize_user_data(user_data_dir)
       @context = @playwright_exec.playwright.chromium.launch_persistent_context(
-        user_data_dir,
+        get_user_data(account_dir_name),
         channel: browser,
         headless: false,
         userAgent: user_agent,
@@ -337,10 +335,33 @@ module BrowserAutomation
       end
     end
 
+    def get_user_data(account_dir_name)
+      user_data_dir_paths = File.read(File.join(Dir.pwd, "config", "user_data_dir.txt")).strip.split("\n")
+      # 查找用户目录
+      user_data_dir_paths.each do |user_data_dir_path|
+        user_data_dir_path += "/user_data"
+        FileUtils.mkdir_p(user_data_dir_path) unless File.exist?(user_data_dir_path)
+        if Dir.children(user_data_dir_path).include? account_dir_name
+          return user_data_dir_path + "/" + account_dir_name
+        end
+      end
+      config = self.class.load_config
+      # 初次登陆的时候，确定使用哪个目录
+      user_data_dir_paths.each do |user_data_dir_path|
+        user_data_dir_path += "/user_data"
+        stat = Sys::Filesystem.stat(user_data_dir_path)
+        if stat.blocks_available.to_f / stat.blocks > config["disk_free_threshold"]
+          user_data_dir = user_data_dir_path + "/" + account_dir_name
+          initialize_user_data(user_data_dir)
+          return user_data_dir
+        end
+      end
+      raise "磁盘空间不足"
+    end
+
     # 初始化用户数据目录，如果是新用户，则将模版copy一份到用户目录下
     def initialize_user_data(user_data_dir)
       return if File.exist?(user_data_dir)
-      FileUtils.mkdir_p(USER_DATA_ROOT_DIR) unless File.exist?(USER_DATA_ROOT_DIR)
       FileUtils.cp_r(TEMPLATE_USER_DATA_DIR, user_data_dir)
       logger.info("copy模版用户目录: #{user_data_dir}")
     end
@@ -356,7 +377,7 @@ module BrowserAutomation
 
     def self.load_config
       return @config if @config
-      json_text = File.read(File.join(Dir.pwd, "bot_config.json"))
+      json_text = File.read(File.join(Dir.pwd, "config", "bot_config.json"))
       begin
         @config = JSON.parse(json_text)
         min_interval_minutes, max_interval_minutes = @config["interval_minutes"].split("-").map{|i| i.to_i * 60}
@@ -368,6 +389,7 @@ module BrowserAutomation
         @config["max_failure_delay_minutes"] = max_failure_delay_minutes || min_failure_delay_minutes
 
         @config["max_consecutive_failures"] = @config["max_consecutive_failures"].to_i
+        @config["disk_free_threshold"] = @config["disk_free_threshold"].to_f
         @config
       rescue Exception => _e
         raise "bot_config.json 格式错误"

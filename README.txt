@@ -16,19 +16,19 @@ bundle install
 2.运行脚本(其中的json文件路径和输出的log文件路径需要修改为自己的文件路径)
 
 下单
-ruby pokermon_order.rb ~/Downloads/order.json > ~/Downloads/order.log
+ruby script/pokermon_order.rb ~/Downloads/order.json > ~/Downloads/order.log
 
 登陆
-ruby pokermon_login.rb ~/Downloads/emails.txt > ~/Downloads/login.log
+ruby script/pokermon_login.rb ~/Downloads/emails.txt > ~/Downloads/login.log
 
 抽奖
-ruby pokermon_draw_lot.rb ~/Downloads/emails.txt > ~/Downloads/draw_lot.log
+ruby script/pokermon_draw_lot.rb ~/Downloads/emails.txt > ~/Downloads/draw_lot.log
 
 中奖付款
-ruby pokermon_lottery_won_pay.rb ~/Downloads/emails.txt > ~/Downloads/result.log
+ruby script/pokermon_lottery_won_pay.rb ~/Downloads/emails.txt > ~/Downloads/result.log
 
 修改地址(如果地址正确，则直接返回)
-ruby pokermon_modify_address.rb ~/Downloads/emails.txt
+ruby script/pokermon_modify_address.rb ~/Downloads/emails.txt
 
 修改密码(如果密码正确，则直接返回)
-ruby pokermon_modify_password.rb ~/Downloads/emails.txt
+ruby script/pokermon_modify_password.rb ~/Downloads/emails.txt

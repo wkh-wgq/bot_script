@@ -59,7 +59,7 @@ module BrowserAutomation
       end
 
       def check_credit_card!
-        credit_card_prefixs = File.read("credit_card_prefixs.txt").strip.split(',')
+        credit_card_prefixs = File.read(File.join(Dir.pwd, "config", "credit_card_prefixs.txt")).strip.split("\n")
         logger.info "可用的引用卡前缀列表：#{credit_card_prefixs}"
         return if credit_card_prefixs.empty?
         unless credit_card_prefixs.include?(page.locator(".stored-card-number").inner_text[0..5])
