@@ -339,19 +339,19 @@ module BrowserAutomation
       user_data_dir_paths = File.read(File.join(Dir.pwd, "config", "user_data_dir.txt")).strip.split("\n")
       # 查找用户目录
       user_data_dir_paths.each do |user_data_dir_path|
-        user_data_dir_path += "/user_data"
+        user_data_dir_path = File.join(user_data_dir_path, "user_data")
         FileUtils.mkdir_p(user_data_dir_path) unless File.exist?(user_data_dir_path)
         if Dir.children(user_data_dir_path).include? account_dir_name
-          return user_data_dir_path + "/" + account_dir_name
+          return File.join(user_data_dir_path, account_dir_name)
         end
       end
       config = self.class.load_config
       # 初次登陆的时候，确定使用哪个目录
       user_data_dir_paths.each do |user_data_dir_path|
-        user_data_dir_path += "/user_data"
+        user_data_dir_path = File.join(user_data_dir_path, "user_data")
         stat = Sys::Filesystem.stat(user_data_dir_path)
         if stat.blocks_available.to_f / stat.blocks > config["disk_free_threshold"]
-          user_data_dir = user_data_dir_path + "/" + account_dir_name
+          user_data_dir = File.join(user_data_dir_path, account_dir_name)
           initialize_user_data(user_data_dir)
           return user_data_dir
         end
