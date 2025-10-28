@@ -56,6 +56,11 @@ module BrowserAutomation
           page.locator("#authCode").type(captcha, delay: rand(50..200))
           human_like_click("#rememberMe")
           human_like_click("#authBtn")
+          sleep(rand(5..8))
+
+          human_like_move_to_element(page.locator("#terms"))
+          human_like_click("#terms")
+          human_like_click("text=次へ進む")
           sleep(rand(7..10))
         end
 
