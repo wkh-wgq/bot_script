@@ -46,7 +46,7 @@ module BrowserAutomation
         sleep(rand(0.6..1.2))
         page.keyboard.press("Enter")
         sleep(rand(7..10))
-        if page.url.include? "https://www.pokemoncenter-online.com/login-mfa"
+        if page.url.include? "www.pokemoncenter-online.com/login-mfa"
           logger.info "发送验证码，等待邮件..."
           human_mouse_idle_move
           sleep(rand(5..10))
@@ -56,8 +56,10 @@ module BrowserAutomation
           page.locator("#authCode").type(captcha, delay: rand(50..200))
           human_like_click("#rememberMe")
           human_like_click("#authBtn")
-          sleep(rand(5..8))
+          sleep(rand(7..10))
+        end
 
+        if page.url.include? "www.pokemoncenter-online.com/re-agree-to-terms"
           human_like_move_to_element(page.locator("#terms"))
           human_like_click("#terms")
           human_like_click("text=次へ進む")
