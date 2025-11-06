@@ -1,2 +1,3 @@
 # Ignore tempfiles.
 config/credit_card_prefixs.txt
+config/bot_config.json
