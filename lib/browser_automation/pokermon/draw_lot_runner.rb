@@ -48,11 +48,11 @@ module BrowserAutomation
 
       # 抽奖
       def draw_lot
-        positions = [
-          { product_index: 0, radio_index: 0 }
-          # { product_index: 1, radio_index: 0 },
-          # { product_index: 2, radio_index: 0 }
-        ]
+        data = File.read(File.join(Dir.pwd, "config", "draw_lot_products.txt")).split(",")
+        positions = data.map do |p|
+          product_index, radio_index = p.split("-")
+          { product_index: product_index.to_i, radio_index: radio_index.to_i }
+        end
         human_mouse_idle_move
         human_like_click("text=抽選応募")
         human_delay
