@@ -2,3 +2,5 @@
 config/credit_card_prefixs.txt
 config/bot_config.json
 config/draw_lot_products.txt
+config/user_data_dir.txt
+config/user_agents.txt
