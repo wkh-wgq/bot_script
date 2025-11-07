@@ -49,9 +49,9 @@ module BrowserAutomation
       # 抽奖
       def draw_lot
         positions = [
-          { product_index: 0, radio_index: 0 },
-          { product_index: 1, radio_index: 0 },
-          { product_index: 2, radio_index: 0 }
+          { product_index: 0, radio_index: 0 }
+          # { product_index: 1, radio_index: 0 },
+          # { product_index: 2, radio_index: 0 }
         ]
         human_mouse_idle_move
         human_like_click("text=抽選応募")
