@@ -13,6 +13,8 @@ module BrowserAutomation
 
       def go_home_page
         page.goto(ROOT_URL, waitUntil: "domcontentloaded")
+      rescue => _e
+        raise "当前网络异常！"
       end
 
       # 校验网络是否被限制访问
@@ -33,32 +35,88 @@ module BrowserAutomation
         human_delay
       end
 
-      # 随机浏览
       def random_browse
-        # return if rand < 0.3
-        block = -> do
-          # 随机向下滚动
-          human_like_scroll(scroll_times: (3..7), scorll_length: (300..600))
-          # 向上滚动到页面顶部
-          human_like_move_to_top
+        browsing_style = rand < 0.4 ? :fast : :slow
+        scroll_behavior = lambda do
+          times = browsing_style == :fast ? (2..4) : (3..7)
+          length = browsing_style == :fast ? (200..400) : (300..800)
+          human_like_scroll(scroll_times: times, scorll_length: length, delay: (0.3..0.8))
         end
-        human_mouse_idle_move
-        block.call
-        if rand < 0.8
-          human_like_click("text=新商品", wait_for_navigation: true)
-          human_mouse_idle_move if rand < 0.5
-          block.call
+
+        def gaze_pause
+          sleep(rand(0.8..2.0))
+          human_mouse_idle_move if rand < 0.4
         end
-        if rand < 0.7
-          human_like_click("text=ポケモンから探す", wait_for_navigation: true)
-          human_mouse_idle_move if rand < 0.5
-          block.call
+
+        def maybe_click(text, probability: 0.5, nav: true)
+          return unless rand < probability
+          human_like_click("text=#{text}", wait_for_navigation: nav)
+          sleep(rand(1.0..2.5))
         end
-        if rand < 0.6
-          human_like_click("text=おすすめ特集", wait_for_navigation: true)
-          human_mouse_idle_move if rand < 0.5
-          block.call
+
+        def browsing_block(scroll_behavior)
+          scroll_behavior.call
+          gaze_pause
+          human_like_move_to_top if rand < 0.6
         end
+
+        def maybe_hover_random_element
+          selectors = %w[a img .item .product button .card .nav-item]
+          selector = selectors.sample
+          elements = page.query_selector_all(selector)
+          return if elements.empty?
+          element = elements.sample
+          human_like_hover(element) if rand < 0.7
+        rescue => _e
+        end
+
+        def maybe_hover_and_decide_click
+          selectors = %w[a img .product .card button]
+          selector = selectors.sample
+          elements = page.query_selector_all(selector)
+          return if elements.empty?
+          element = elements.sample
+          human_like_hover_and_decide_click(element, click_probability: rand(0.2..0.6))
+        rescue => e
+        end
+
+        # 开始浏览
+        human_mouse_idle_move if rand < 0.5
+        browsing_block(scroll_behavior)
+        maybe_hover_random_element if rand < 0.8
+        # maybe_hover_and_decide_click if rand < 0.6
+
+        categories = [
+          { text: "新商品", weight: 0.5 },
+          { text: "ポケモンから探す", weight: 0.5 },
+          { text: "おすすめ特集", weight: 0.5 }
+        ]
+
+        categories.shuffle.each do |cat|
+          next unless rand < cat[:weight]
+
+          # maybe_hover_and_decide_click if rand < 0.5
+          maybe_hover_random_element if rand < 0.5
+          maybe_click(cat[:text], probability: cat[:weight], nav: true)
+          gaze_pause
+          browsing_block(scroll_behavior)
+          # maybe_hover_and_decide_click if rand < 0.4
+          maybe_hover_random_element if rand < 0.4
+
+          if rand < 0.3
+            page.go_back rescue nil
+            sleep(rand(0.8..1.5))
+            human_mouse_idle_move if rand < 0.3
+          end
+        end
+
+        case rand
+        when 0.0..0.3 then human_like_move_to_top
+        when 0.3..0.6 then scroll_behavior.call
+        else human_mouse_idle_move
+        end
+
+        sleep(rand(1.0..3.0))
       end
 
       def queue_up

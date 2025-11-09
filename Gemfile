@@ -13,3 +13,5 @@ gem "ffi", "~> 1.17"
 
 # 系统调用
 gem "sys-filesystem", "~> 1.5"
+
+gem "perlin_noise", "~> 0.2.0"

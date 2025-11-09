@@ -14,6 +14,7 @@ GEM
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2025.0624)
     netrc (0.11.0)
+    perlin_noise (0.2.0)
     playwright-ruby-client (1.52.0)
       concurrent-ruby (>= 1.1.6)
       mime-types (>= 3.0)
@@ -34,6 +35,7 @@ PLATFORMS
 
 DEPENDENCIES
   ffi (~> 1.17)
+  perlin_noise (~> 0.2.0)
   playwright-ruby-client (~> 1.51)
   rest-client (~> 2.1)
   sys-filesystem (~> 1.5)

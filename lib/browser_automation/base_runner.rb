@@ -1,5 +1,6 @@
 require "playwright"
 require "sys/filesystem"
+require 'perlin_noise'
 require 'json'
 module BrowserAutomation
   class BaseRunner
@@ -199,28 +200,43 @@ module BrowserAutomation
       end
       points << [ target_x, target_y ]
 
+      # 中途路径修正（模拟“手动调整”）
+      if rand < 0.15
+        mid_index = points.size / 2
+        adjust_x = target_x + rand(-60..60)
+        adjust_y = target_y + rand(-60..60)
+        points.insert(mid_index, [adjust_x, adjust_y])
+      end
+
       # 插值路径
       steps_per_segment = 12
       total_points = []
+      drift_x = rand(-20..20)
+      drift_y = rand(-20..20)
+
       (0...(points.size - 1)).each do |i|
         p0 = points[i]
         p3 = points[i + 1]
-        cx = (p0[0] + p3[0]) / 2 + rand(-30..30)
-        cy = (p0[1] + p3[1]) / 2 + rand(-30..30)
+        c1x = p0[0] + (p3[0] - p0[0]) * 0.3 + rand(-25..25)
+        c1y = p0[1] + (p3[1] - p0[1]) * 0.3 + rand(-25..25)
+        c2x = p0[0] + (p3[0] - p0[0]) * 0.6 + rand(-25..25)
+        c2y = p0[1] + (p3[1] - p0[1]) * 0.6 + rand(-25..25)
 
         steps_per_segment.times do |step|
           t = step.to_f / (steps_per_segment - 1)
           t_sigmoid = 1 / (1 + Math.exp(-12 * (t - 0.5))) # 加减速
+          t_curve = t_sigmoid + Math.sin(t * Math::PI * rand(0.8..1.2)) * 0.02
 
-          x_base = (1 - t_sigmoid)**2 * p0[0] + 2 * (1 - t_sigmoid) * t_sigmoid * cx + t_sigmoid**2 * p3[0]
-          y_base = (1 - t_sigmoid)**2 * p0[1] + 2 * (1 - t_sigmoid) * t_sigmoid * cy + t_sigmoid**2 * p3[1]
+          x_base = (1 - t_curve)**3 * p0[0] + 3 * (1 - t_curve)**2 * t_curve * c1x + 3 * (1 - t_curve) * t_curve**2 * c2x + t_curve**3 * p3[0]
+          y_base = (1 - t_curve)**3 * p0[1] + 3 * (1 - t_curve)**2 * t_curve * c1y + 3 * (1 - t_curve) * t_curve**2 * c2y + t_curve**3 * p3[1]
 
           # 高频抖动
-          jitter_x = Math.sin(t_sigmoid * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
-          jitter_y = Math.cos(t_sigmoid * Math::PI * (5 + rand(5))) * (0.3 + rand(0.3))
+          noise = Perlin::Noise.new(1)
+          jitter_x = noise[t * 10] * 2
+          jitter_y = noise[t * 10 + 100] * 2
 
-          x = x_base + jitter_x + rand(-0.5..0.5)
-          y = y_base + jitter_y + rand(-0.5..0.5)
+          x = x_base + jitter_x + drift_x * t_curve + rand(-0.5..0.5)
+          y = y_base + jitter_y + drift_y * t_curve + rand(-0.5..0.5)
 
           total_points << [ x, y ]
         end
@@ -230,22 +246,36 @@ module BrowserAutomation
       total_points.each_with_index do |(x, y), idx|
         page.mouse.move(x, y, steps: 1)
         page.evaluate("window._lastX = #{x}; window._lastY = #{y};")
-        sleep(rand(move_delay))
+
+        sleep(gaussian_random((move_delay.min + move_delay.max) / 2.0, 0.005).clamp(0.005, 0.06))
         sleep(rand(0.03..0.15)) if rand < 0.15
       end
 
       # Hover 停顿
-      page.mouse.move(target_x, target_y)
+      # page.mouse.move(target_x, target_y)
       sleep(rand(0.15..0.4)) # 模拟人在点击前的短暂犹豫
       if rand < 0.3
         # 30% 概率在目标附近微调一下
-        page.mouse.move(target_x + rand(-2..2), target_y + rand(-2..2))
+        page.mouse.move(target_x + rand(-3..3), target_y + rand(-3..3))
         sleep(rand(0.05..0.15))
+        page.mouse.move(target_x, target_y)
+      end
+
+      # 越界修正（模拟“校准”）
+      if rand < 0.25
+        page.mouse.move(target_x + rand(-5..5), target_y + rand(-5..5))
+        sleep(rand(0.05..0.1))
         page.mouse.move(target_x, target_y)
       end
 
       # 点击
       sleep(rand(click_delay))
+      if rand < 0.02
+        # 模拟误点后补点
+        page.mouse.click(target_x + rand(-6..6), target_y + rand(-6..6))
+        sleep(rand(0.05..0.2))
+      end
+
       if wait_for_navigation
         page.expect_navigation(timeout: navigation_timeout) do
           simulate_human_click(target_x, target_y)
@@ -286,10 +316,10 @@ module BrowserAutomation
     end
 
     # 采样函数（Box–Muller）
-    def gaussian_random
+    def gaussian_random(mean = MU, stddev = SIGMA)
       u1, u2 = rand, rand
       z0 = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math::PI * u2)
-      MU + z0 * SIGMA
+      mean + z0 * stddev
     end
 
     def human_delay(min = 0.5, max = 2.0)
@@ -326,6 +356,107 @@ module BrowserAutomation
         y = target_y
       end
     end
+
+    # =========================
+    #  拟人化悬停动作
+    # =========================
+    def human_like_hover(element_or_selector)
+      element = element_or_selector.is_a?(Playwright::ElementHandle) ?
+                  element_or_selector :
+                  page.query_selector(element_or_selector)
+      box = element.bounding_box
+      raise "无法获取元素(#{get_element_selector(element)})位置" unless box
+      # 悬停目标点（略偏中间）
+      target_x = box["x"] + box["width"] * (0.4 + rand * 0.2)
+      target_y = box["y"] + box["height"] * (0.4 + rand * 0.2)
+
+      # 起始点为上次鼠标位置或屏幕某处
+      start = page.evaluate("() => ({x: window._lastX || 50, y: window._lastY || 50})")
+      start_x, start_y = start.values_at("x", "y")
+
+      # 生成平滑路径（贝塞尔曲线）
+      steps = 20
+      cx = (start_x + target_x) / 2 + rand(-40..40)
+      cy = (start_y + target_y) / 2 + rand(-40..40)
+      path = (0..steps).map do |i|
+        t = i.to_f / steps
+        t_ease = 1 / (1 + Math.exp(-12 * (t - 0.5))) # sigmoid缓动
+        x = (1 - t_ease)**2 * start_x + 2 * (1 - t_ease) * t_ease * cx + t_ease**2 * target_x
+        y = (1 - t_ease)**2 * start_y + 2 * (1 - t_ease) * t_ease * cy + t_ease**2 * target_y
+        [x + rand(-0.5..0.5), y + rand(-0.5..0.5)]
+      end
+
+      # 执行移动
+      path.each do |x, y|
+        page.mouse.move(x, y, steps: 1)
+        page.evaluate("window._lastX = #{x}; window._lastY = #{y};")
+        sleep(rand(0.01..0.03))
+      end
+
+      # 停顿观察（人类注视）
+      page.mouse.move(target_x, target_y)
+      sleep(rand(0.4..1.2))
+
+      # 微抖动模拟注意力转移
+      rand(2..4).times do
+        dx = rand(-3..3)
+        dy = rand(-3..3)
+        page.mouse.move(target_x + dx, target_y + dy, steps: 1)
+        sleep(rand(0.05..0.15))
+      end
+
+      # 可能再次悬停
+      if rand < 0.2
+        sleep(rand(0.5..1.0))
+        page.mouse.move(target_x + rand(-2..2), target_y + rand(-2..2))
+      end
+
+      sleep(rand(0.4..1.0))
+    end
+
+    def human_like_hover_and_decide_click(element_or_selector, click_probability: 0.4, hesitation: (0.8..2.0))
+      element = element_or_selector.is_a?(Playwright::ElementHandle) ?
+                  element_or_selector :
+                  page.query_selector(element_or_selector)
+
+      box = element.bounding_box
+      raise "无法获取元素(#{get_element_selector(element)})位置" unless box
+
+      # 悬停 + 抖动
+      human_like_hover(element)
+
+      # 模拟“人眼观察 + 犹豫”
+      sleep(rand(hesitation))
+
+      # 模拟“在区域内轻微移动查看内容”
+      rand(2..5).times do
+        dx = rand(-5..5)
+        dy = rand(-5..5)
+        x = box["x"] + box["width"] / 2 + dx
+        y = box["y"] + box["height"] / 2 + dy
+        page.mouse.move(x, y, steps: 1)
+        sleep(rand(0.05..0.2))
+      end
+
+      # 再次停顿（模拟考虑是否点击）
+      sleep(rand(0.5..1.5))
+
+      # 以概率点击
+      if rand < click_probability
+        simulate_human_click(
+          box["x"] + box["width"] * (0.4 + rand * 0.2),
+          box["y"] + box["height"] * (0.4 + rand * 0.2)
+        )
+        sleep(rand(1.0..2.5))
+        return :clicked
+      else
+        # 离开 hover 区域（模拟兴趣丧失）
+        page.mouse.move(box["x"] + box["width"] + rand(30..60), box["y"] + rand(-20..20), steps: 3)
+        sleep(rand(0.3..0.8))
+        return :skipped
+      end
+    end
+
 
     def get_element_selector(element)
       begin

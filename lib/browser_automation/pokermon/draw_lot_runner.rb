@@ -61,6 +61,7 @@ module BrowserAutomation
         human_delay(5, 8)
         lis = page.locator("ul.comOrderList > li")
         raise "抽奖页面异常，抽奖失败！" if lis.count == 0
+        logger.info "进入抽奖页面"
         positions.each do |position|
           product_index = position[:product_index]
           li = lis.nth(product_index)

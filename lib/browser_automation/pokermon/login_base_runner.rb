@@ -69,9 +69,12 @@ module BrowserAutomation
         if page.url.include? MY_URL
           logger.info "登陆成功!"
         else
-          logger.error "登陆报错：#{page.locator(".comErrorBox").inner_text}"
-          if page.locator(".comErrorBox").inner_text.include?("メールアドレスまたはパスワードが一致しませんでした")
+          error_message = page.locator(".comErrorBox").inner_text
+          logger.error "登陆报错：#{error_message}"
+          if error_message.include?("メールアドレスまたはパスワードが一致しませんでした")
             @password = "1234qwer."
+          elsif error_message.include?("アカウントが一時的にロックされました。しばらく経ってから、ログインをお試しください")
+            raise "账号被锁定！"
           end
           raise "登陆失败！" if @login_retry_count >= 2
           @login_retry_count += 1
