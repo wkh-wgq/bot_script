@@ -48,10 +48,13 @@ module BrowserAutomation
           human_mouse_idle_move if rand < 0.4
         end
 
-        def maybe_click(text, probability: 0.5, nav: true)
+        def maybe_click(text, probability: 0.5)
           return unless rand < probability
-          human_like_click("text=#{text}", wait_for_navigation: nav)
+          logger.info "点击(#{text})开始"
+          human_like_click("text=#{text}", wait_for_navigation: true)
+          logger.info "点击(#{text})结束"
           sleep(rand(1.0..2.5))
+        rescue => _e
         end
 
         def browsing_block(scroll_behavior)
@@ -97,7 +100,7 @@ module BrowserAutomation
 
           # maybe_hover_and_decide_click if rand < 0.5
           maybe_hover_random_element if rand < 0.5
-          maybe_click(cat[:text], probability: cat[:weight], nav: true)
+          maybe_click(cat[:text], probability: cat[:weight])
           gaze_pause
           browsing_block(scroll_behavior)
           # maybe_hover_and_decide_click if rand < 0.4
