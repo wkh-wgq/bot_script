@@ -6,13 +6,13 @@ module BrowserAutomation
 
       MAILBOX_SERVER_HOST = ENV.fetch("MAILBOX_SERVER_HOST", "https://auto.usingnow.tech/")
       CAPTCHA_PAGE_URL = "www.pokemoncenter-online.com/login-mfa"
+      MAX_RETRY = 3
 
       attr_reader :email
       def initialize(email, password)
         initialize_page(email.split(".").first)
         @email = email
         @password = password
-        @login_retry_count = 0
       end
 
       def run
@@ -30,48 +30,45 @@ module BrowserAutomation
       end
 
       def login
-        raise "登陆失败！" if @login_retry_count > 2
-        human_like_move_to_top
-        # 鼠标随机移动
-        human_mouse_idle_move
-        human_like_click("text=ログイン ／ 会員登録", wait_for_navigation: true)
-        human_like_move_to_element(page.locator("#form1Button"))
-        human_like_type_email_and_password
-        human_like_click("#form1Button")
-        sleep(rand(7..10))
-        # 如果没有到填写验证码的页面，就解析错误信息
-        if page.url.include? CAPTCHA_PAGE_URL
-          logger.info "发送验证码，等待邮件..."
-          # 填写验证码
-          fill_in_captcha
-        elsif page.url.include? MY_URL
-          return logger.info "登陆成功!"
-        else
-          need_retry = extract_login_error
-          if need_retry
-            logger.info "有错误信息，登陆重试"
-            @login_retry_count += 1
-            login
-          end
-        end
-        sleep(rand(3..5)) if page.url.include? CAPTCHA_PAGE_URL
-        if page.url.include? CAPTCHA_PAGE_URL
-          logger.info "验证码页面无法跳转，进行重试"
-          @login_retry_count += 1
-          login
-        end
-        if page.url.include? "www.pokemoncenter-online.com/re-agree-to-terms"
-          human_like_move_to_element(page.locator("#terms"))
-          human_like_click("#terms")
-          human_like_click("text=次へ進む")
+        login_retry_count = 0
+        while login_retry_count < MAX_RETRY
+          human_like_move_to_top
+          # 鼠标随机移动
+          human_mouse_idle_move
+          human_like_click("text=ログイン ／ 会員登録", wait_for_navigation: true)
+          human_like_move_to_element(page.locator("#form1Button"))
+          human_like_type_email_and_password
+          human_like_click("#form1Button")
           sleep(rand(7..10))
+          # 如果没有到填写验证码的页面，就解析错误信息
+          if page.url.include? CAPTCHA_PAGE_URL
+            logger.info "发送验证码，等待邮件..."
+            # 填写验证码
+            fill_in_captcha
+          elsif page.url.include? MY_URL
+            return logger.info "登陆成功!"
+          else
+            need_retry = extract_login_error
+            if need_retry
+              logger.info "有错误信息，登陆重试"
+              login_retry_count += 1
+              next
+            end
+          end
+          sleep(rand(3..5)) if page.url.include? CAPTCHA_PAGE_URL
+          if page.url.include? CAPTCHA_PAGE_URL
+            logger.info "验证码页面无法跳转，进行重试"
+            login_retry_count += 1
+            next
+          end
+          handle_terms_page if page.url.include? "www.pokemoncenter-online.com/re-agree-to-terms"
+          return logger.info "登陆成功!" if page.url.include? MY_URL
+          sleep(rand(3..5))
+          return logger.info "登陆成功!" if page.url.include? MY_URL
+          logger.info "确认页面无法跳转，进行重试"
+          login_retry_count += 1
         end
-        return logger.info "登陆成功!" if page.url.include? MY_URL
-        sleep(rand(3..5))
-        return logger.info "登陆成功!" if page.url.include? MY_URL
-        logger.info "确认页面无法跳转，进行重试"
-        @login_retry_count += 1
-        login
+        raise "超过最大重试次数，登陆失败！"
       end
 
       def get_login_captcha
@@ -135,6 +132,13 @@ module BrowserAutomation
           raise "账号被锁定！"
         end
         true
+      end
+
+      def handle_terms_page
+        human_like_move_to_element(page.locator("#terms"))
+        human_like_click("#terms")
+        human_like_click("text=次へ進む")
+        sleep(rand(7..10))
       end
 
       # 输入邮箱和密码
