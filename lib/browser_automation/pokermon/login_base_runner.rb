@@ -30,6 +30,7 @@ module BrowserAutomation
       end
 
       def login
+        raise "登陆失败！" if @login_retry_count > 2
         human_like_move_to_top
         # 鼠标随机移动
         human_mouse_idle_move
@@ -43,6 +44,8 @@ module BrowserAutomation
           logger.info "发送验证码，等待邮件..."
           # 填写验证码
           fill_in_captcha
+        elsif page.url.include? MY_URL
+          return logger.info "登陆成功!"
         else
           need_retry = extract_login_error
           if need_retry
@@ -66,7 +69,6 @@ module BrowserAutomation
         return logger.info "登陆成功!" if page.url.include? MY_URL
         sleep(rand(3..5))
         return logger.info "登陆成功!" if page.url.include? MY_URL
-        raise "登陆失败！" if @login_retry_count >= 2
         logger.info "确认页面无法跳转，进行重试"
         @login_retry_count += 1
         login
