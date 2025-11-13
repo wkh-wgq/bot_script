@@ -448,12 +448,10 @@ module BrowserAutomation
           box["y"] + box["height"] * (0.4 + rand * 0.2)
         )
         sleep(rand(1.0..2.5))
-        return :clicked
       else
         # 离开 hover 区域（模拟兴趣丧失）
         page.mouse.move(box["x"] + box["width"] + rand(30..60), box["y"] + rand(-20..20), steps: 3)
         sleep(rand(0.3..0.8))
-        return :skipped
       end
     end
 
@@ -463,6 +461,20 @@ module BrowserAutomation
         element.instance_variable_get('@impl').instance_variable_get('@selector')
       rescue Exception => _e
         nil
+      end
+    end
+
+    # 拟人化点击并输入文本
+    def human_like_type_with_click(selector, text, min_delay: 0.08, max_delay: 0.25)
+      human_like_click(selector)
+      human_like_type(text, min_delay: min_delay, max_delay: min_delay)
+    end
+
+    # 拟人化输入文本(每个字符随机延迟)
+    def human_like_type(text, min_delay: 0.08, max_delay: 0.25)
+      text.each_char do |char|
+        page.keyboard.press(char)
+        sleep(rand(min_delay..max_delay))
       end
     end
 

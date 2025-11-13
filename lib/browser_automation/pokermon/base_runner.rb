@@ -50,9 +50,7 @@ module BrowserAutomation
 
         def maybe_click(text, probability: 0.5)
           return unless rand < probability
-          logger.info "点击(#{text})开始"
           human_like_click("text=#{text}", wait_for_navigation: true)
-          logger.info "点击(#{text})结束"
           sleep(rand(1.0..2.5))
         rescue => _e
         end
@@ -87,7 +85,7 @@ module BrowserAutomation
         human_mouse_idle_move if rand < 0.5
         browsing_block(scroll_behavior)
         maybe_hover_random_element if rand < 0.8
-        # maybe_hover_and_decide_click if rand < 0.6
+        maybe_hover_and_decide_click if rand < 0.6
 
         categories = [
           { text: "新商品", weight: 0.5 },
@@ -98,16 +96,16 @@ module BrowserAutomation
         categories.shuffle.each do |cat|
           next unless rand < cat[:weight]
 
-          # maybe_hover_and_decide_click if rand < 0.5
-          maybe_hover_random_element if rand < 0.5
+          maybe_hover_and_decide_click if rand < 0.5
+          # maybe_hover_random_element if rand < 0.5
           maybe_click(cat[:text], probability: cat[:weight])
           gaze_pause
           browsing_block(scroll_behavior)
-          # maybe_hover_and_decide_click if rand < 0.4
-          maybe_hover_random_element if rand < 0.4
+          maybe_hover_and_decide_click if rand < 0.4
+          # maybe_hover_random_element if rand < 0.4
 
           if rand < 0.3
-            page.go_back rescue nil
+            page.go_back if page.url != "https://www.pokemoncenter-online.com/"
             sleep(rand(0.8..1.5))
             human_mouse_idle_move if rand < 0.3
           end

@@ -1,24 +1,31 @@
 module BrowserAutomation
   module Pokermon
     class RegisterRunner < BaseRunner
-      attr_reader :email
-      def initialize(email)
+      attr_reader :email, :options
+      def initialize(email, options)
         initialize_page(email.split(".").first)
         @email = email
+        @options = options
       end
 
-      # 发送注册链接的邮件
-      def send_email
+      def run
         @retry_count = 0
+        # 发送注册邮件
         click_register
-        if page.url == "https://www.pokemoncenter-online.com/temporary-customer-complete/"
-          logger.info "账号(#{email})发送注册邮完成"
-          true
-        else
-          false
+        unless page.url.include? "www.pokemoncenter-online.com/temporary-customer-complete"
+          logger.info "账号(#{email})发送注册邮失败"
+          return false
         end
+        logger.info "账号(#{email})发送注册邮成功，等待邮件..."
+        human_mouse_idle_move
+        sleep(rand(5..10))
+        human_mouse_idle_move
+        # 调接口查询邮件的注册链接
+        link = get_register_link
+        # 进行注册操作
+        register(link)
       rescue Exception => e
-        logger.error "账号(#{email})发送注册邮件失败:#{e.message}"
+        logger.error "账号(#{email})注册失败:#{e.message}"
         false
       ensure
         close_page
@@ -39,16 +46,20 @@ module BrowserAutomation
         retry
       end
 
-      def register(register_link:, name:, jp_name:, birthday:, gender:, postal_code:, street_number:, password:, mobile:)
+      def register(register_link)
         page.goto register_link
         human_delay
         human_like_move_to_element(page.locator("#registration-form-birthdayyear"))
         # 填写姓名
-        human_like_click("#registration-form-fname")
-        page.locator("#registration-form-fname").type(name, delay: rand(50..150))
-        page.keyboard.press("Tab")
-        page.locator("#registration-form-kana").type(jp_name, delay: rand(50..150))
+        human_like_type_with_click("#registration-form-fname", options["name"])
+        if rand < 0.5
+          page.keyboard.press("Tab")
+        else
+          human_like_click("#registration-form-kana")
+        end
+        human_like_type("#registration-form-kana", options["jp_name"])
         human_like_move_to_element(page.locator("#registration-form-birthdayday"))
+        birthday = options["birthday"].to_date
         # 选择生日
         page.locator("#registration-form-birthdayyear").select_option(value: birthday.year.to_s)
         human_delay
@@ -59,21 +70,19 @@ module BrowserAutomation
 
         human_like_move_to_element(page.locator('[name="dwfrm_profile_customer_gender"]'))
         # 选择性别
-        page.locator('[name="dwfrm_profile_customer_gender"]').select_option(value: gender == "男" ? "1" : "2")
+        page.locator('[name="dwfrm_profile_customer_gender"]').select_option(value: options["gender"] == "男" ? "1" : "2")
         human_delay
 
         # 填写地址
         human_like_move_to_element(page.locator("#registration-form-postcode"))
-        human_like_click("#registration-form-postcode")
-        page.locator("#registration-form-postcode").type(postal_code, delay: rand(50..150))
+        human_like_type_with_click("#registration-form-postcode", options["postal_code"])
 
         human_like_move_to_element(page.locator("#registration-form-address-line1"))
 
         # 填写邮编后页面会触发事件，所以需要等待，否则会把填写的house_number清空
         human_delay(2.0, 5.0)
         page.wait_for_selector("#registration-form-address-line1:enabled")
-        # human_like_click("#registration-form-address-line1")
-        page.locator("#registration-form-address-line1").type(street_number, delay: rand(50..150))
+        human_like_type_with_click("#registration-form-address-line1", options["street_number"])
         human_delay
         # human_like_click("#registration-form-address-line2")
         # page.locator("#registration-form-address-line2").type(params[:address], delay: rand(50..150))
@@ -81,16 +90,14 @@ module BrowserAutomation
 
         human_like_move_to_element(page.locator('[name="dwfrm_profile_customer_phone"]'))
         # 填写手机号
-        human_like_click('[name="dwfrm_profile_customer_phone"]')
-        page.locator('[name="dwfrm_profile_customer_phone"]').type(mobile, delay: rand(50..150))
+        human_like_type_with_click('[name="dwfrm_profile_customer_phone"]', options["mobile"])
         human_delay
 
         human_like_move_to_element(page.locator('[name="dwfrm_profile_login_passwordconfirm"]'))
         # 输入密码
-        human_like_click('[name="dwfrm_profile_login_password"]')
-        page.locator('[name="dwfrm_profile_login_password"]').type(password, delay: rand(50..150))
+        human_like_type_with_click('[name="dwfrm_profile_login_password"]', options["password"])
         page.keyboard.press("Tab")
-        page.locator('[name="dwfrm_profile_login_passwordconfirm"]').type(password, delay: rand(50..150))
+        human_like_type('[name="dwfrm_profile_login_passwordconfirm"]', options["password"])
 
         human_like_click("text=受け取らない")
 
@@ -115,17 +122,39 @@ module BrowserAutomation
         human_delay(6.0, 10.0)
 
         if page.url == "https://www.pokemoncenter-online.com/new-customer-complete/"
-          logger.info "(#{email})注册完毕！"
+          logger.info "账号(#{email})注册完毕！"
           true
         else
+          logger.error "账号(#{email})注册失败(#{page.url})"
           false
         end
-      rescue Exception => e
-        logger.error "账号(#{email})注册失败:#{e.message}"
-        logger.error e
-        false
-      ensure
-        close_page
+      end
+
+      def get_register_link
+        url = "#{MAILBOX_SERVER_HOST}/pokemon/register_link.json?email=#{email}"
+        max_retries = 5
+
+        max_retries.times do |attempt|
+          begin
+            logger.info "第#{attempt + 1}次获取注册链接"
+            res = RestClient::Request.execute(
+              method: :get, 
+              url: url, 
+              headers: {"accept" => "application/json", "Content-Type" => "application/json"}
+            )
+            json = JSON.parse(res)
+            return json["captcha"] if json["captcha"] && !json["captcha"].empty?
+          rescue Exception => e
+            logger.error "获取注册链接失败：#{e.message}"
+          end
+          
+          if attempt < max_retries - 1
+            logger.warn("第 #{attempt + 1} 次获取注册链接失败，准备重试...")
+            sleep(rand(3..7))
+          end
+        end
+        logger.error "获取注册链接失败！"
+        raise "获取注册链接失败！"
       end
     end # end class RegisterRunner
   end # end module Pokermon
