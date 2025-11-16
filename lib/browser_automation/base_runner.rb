@@ -332,8 +332,11 @@ module BrowserAutomation
       viewport_height = viewport[:height]
       start_time = Time.now
       # 从当前鼠标位置或随机位置开始
-      x = rand(0..viewport_width)
-      y = rand(0..viewport_height)
+      default_x = rand(0..viewport_width)
+      default_y = rand(0..viewport_height)
+      start = page.evaluate("() => ({ x: window._lastX || #{default_x}, y: window._lastY || #{default_y} })")
+      x = start["x"]
+      y = start["y"]
 
       while Time.now - start_time < duration
         steps = rand(min_steps..max_steps)
@@ -465,16 +468,19 @@ module BrowserAutomation
     end
 
     # 拟人化点击并输入文本
-    def human_like_type_with_click(selector, text, min_delay: 0.08, max_delay: 0.25)
+    def human_like_type_with_click(selector, text)
       human_like_click(selector)
-      human_like_type(text, min_delay: min_delay, max_delay: min_delay)
+      human_like_type(text)
     end
 
     # 拟人化输入文本(每个字符随机延迟)
-    def human_like_type(text, min_delay: 0.08, max_delay: 0.25)
+    def human_like_type(text)
+      fast_delay = 0.08..0.25
+      slow_delay = 0.3..0.5
       text.each_char do |char|
         page.keyboard.press(char)
-        sleep(rand(min_delay..max_delay))
+        delay = rand < 0.2 ? slow_delay : fast_delay
+        sleep(rand(delay))
       end
     end
 
