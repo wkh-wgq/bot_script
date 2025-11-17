@@ -72,8 +72,7 @@ module BrowserAutomation
       end
 
       def get_login_captcha
-        # url = "#{MAILBOX_SERVER_HOST}/pokemon/captcha.json?email=#{email}"
-        url = "#{MAILBOX_SERVER_HOST}/captcha/pokemon.json?email=#{email}"
+        url = "#{MAILBOX_SERVER_HOST}/pokemon/captcha.json?email=#{email}"
         max_retries = 5
 
         max_retries.times do |attempt|
