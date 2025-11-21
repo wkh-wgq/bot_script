@@ -516,6 +516,7 @@ module BrowserAutomation
     end
 
     def init_logger
+      STDOUT.sync = true
       STDOUT.set_encoding('UTF-8')
       @logger = Logger.new(STDOUT)
       @logger.level = Logger::INFO
