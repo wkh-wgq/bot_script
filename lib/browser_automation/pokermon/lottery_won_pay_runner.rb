@@ -8,7 +8,7 @@ module BrowserAutomation
 
       def run
         go_home_page
-        %w[validate_network queue_up random_browse login clear_cart validate_address pay fill_order_no].each do |method|
+        %w[validate_network queue_up random_browse login clear_cart pay fill_order_no].each do |method|
           send(:execute_with_log, method)
         end
         logger.info "用户(#{email})下单完成"
